@@ -39,6 +39,21 @@ function domain_conf_drush_command() {
     ),
     'aliases' => array('dc-get'),
   );
+
+  $items['domain-conf-delete'] = array(
+    'description' => 'Delete a variable for a specific domain.',
+    'examples' => array(
+      'drush domain-conf-delete 2 site_frontpage',
+      'drush dc-delete 2 site_frontpage',
+      'drush dc-delete all site_frontpage',
+    ),
+    'arguments' => array(
+      'domain_id' => 'The domain_id for the setting. If set to "all" it will delete the value from all domains.',
+      'name' => 'The name variable to delete (e.g. site_frontpage).',
+    ),
+    'aliases' => array('dc-del'),
+  );
+
   return $items;
 }
 
@@ -99,6 +114,30 @@ function drush_domain_conf_get($domain_id, $name) {
 function drush_domain_conf_get_validate($domain_id = NULL, $name = NULL) {
   if (is_null($domain_id) | is_null($name)) {
     return drush_set_error('domain_conf', dt('Please enter both required arguments, "dc-get domain_id name".'));
+  }
+  $domain = domain_load($domain_id);
+  if (!isset($domain['domain_id']) && $domain_id != 'all') {
+    return drush_set_error('domain_conf', dt('The specified domain does not exist.'));
+  }
+}
+
+function drush_domain_conf_delete($domain_id, $name) {
+  if ($domain_id != 'all') {
+    domain_conf_delete_variable($domain_id, $name);
+    drush_print('Variable deleted.');
+  }
+  else {
+    variable_del($name);
+    foreach (domain_domains(TRUE) as $domain) {
+      domain_conf_delete_variable($domain['domain_id'], $name);
+    }
+    drush_print('Variable deleted for all domains.');
+  }
+}
+
+function drush_domain_conf_delete_validate($domain_id = NULL, $name = NULL) {
+  if (is_null($domain_id) | is_null($name)) {
+    return drush_set_error('domain_conf', dt('Please enter both required arguments, "dc-set domain_id name".'));
   }
   $domain = domain_load($domain_id);
   if (!isset($domain['domain_id']) && $domain_id != 'all') {
